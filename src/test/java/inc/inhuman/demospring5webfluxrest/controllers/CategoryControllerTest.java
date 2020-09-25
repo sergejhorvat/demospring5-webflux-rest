@@ -13,6 +13,8 @@ import reactor.core.publisher.Mono;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 
 class CategoryControllerTest {
 
@@ -61,7 +63,7 @@ class CategoryControllerTest {
     }
 
     @Test
-    public void testCreateCategory(){
+    void testCreateCategory(){
         BDDMockito.given(categoryRepository.saveAll(any(Publisher.class)))
                 .willReturn(Flux.just(Category.builder().build()));
 
@@ -75,7 +77,7 @@ class CategoryControllerTest {
     }
 
     @Test
-    public void testUpdate(){
+    void testUpdate(){
         BDDMockito.given(categoryRepository.save(any(Category.class)))
                 .willReturn(Mono.
                         just(Category
@@ -94,6 +96,59 @@ class CategoryControllerTest {
                 .exchange()
                 .expectStatus()
                 .isOk();
+    }
 
+    @Test
+    void testPatchNoChange(){
+        BDDMockito.given(categoryRepository.findById(anyString()))
+                .willReturn(Mono.just(Category.builder().build()));
+
+        BDDMockito.given(categoryRepository.save(any(Category.class)))
+                .willReturn(Mono.
+                        just(Category
+                                .builder()
+                                .build()
+                        )
+                );
+
+        Mono<Category> catToUpdate = Mono.just(Category.builder().build());
+
+        webTestClient.patch()
+                .uri(("/api/v1/categories/soem"))
+                .body(catToUpdate,Category.class)
+                .exchange()
+                .expectStatus()
+                .isOk();
+
+        BDDMockito.verify(categoryRepository, never()).save(any());
+    }
+
+
+
+    @Test
+    void testPatchWithChange(){
+        BDDMockito.given(categoryRepository.findById(anyString()))
+                .willReturn(Mono.just(Category.builder().build()));
+
+        BDDMockito.given(categoryRepository.save(any(Category.class)))
+                .willReturn(Mono.
+                        just(Category
+                                .builder()
+                                .build()
+                        )
+                );
+
+        Mono<Category> catToUpdate = Mono.just(Category.builder()
+                .description("Some cat to update")
+                .build());
+
+        webTestClient.patch()
+                .uri(("/api/v1/categories/soem"))
+                .body(catToUpdate,Category.class)
+                .exchange()
+                .expectStatus()
+                .isOk();
+
+        BDDMockito.verify(categoryRepository).save(any());
     }
 }
